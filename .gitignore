@@ -1,0 +1,42 @@
+# 环境配置
+.env
+.env.*
+!.env.example
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.uv-cache/
+.coverage
+htmlcov/
+
+# 虚拟环境
+.venv/
+.uv-python/
+venv/
+env/
+
+# Node 依赖
+node_modules/
+.pnpm-store/
+*.tsbuildinfo
+
+# 前端构建
+dist/
+frontend/.vite/
+
+# 本地数据库
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# IDE 和系统文件
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,67 @@
+[project]
+name = "ticketflow-backend"
+version = "0.1.0"
+description = "TicketFlow 工单系统后端"
+requires-python = ">=3.12"
+dependencies = [
+    # Web 与配置
+    "fastapi>=0.115.0",
+    "pydantic-settings>=2.6.0",
+    "python-multipart>=0.0.12",
+    "uvicorn[standard]>=0.32.0",
+
+    # 数据库与迁移
+    "alembic>=1.14.0",
+    "asyncmy>=0.2.10",
+    "greenlet>=3.1.0",
+    "PyMySQL>=1.1.1",
+    "SQLAlchemy[asyncio]>=2.0.36",
+
+    # 认证
+    "email-validator>=2.2.0",
+    "PyJWT[crypto]>=2.10.0",
+    "pwdlib[argon2]>=0.2.1",
+
+    # 缓存与异步任务
+    "celery[redis]>=5.4.0",
+    "redis>=5.2.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.0",
+    "mypy>=1.13.0",
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+asyncio_default_test_loop_scope = "function"
+addopts = "-ra --strict-markers"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "ASYNC"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+
+[tool.coverage.run]
+source = ["app"]
+
+[tool.coverage.report]
+show_missing = true
