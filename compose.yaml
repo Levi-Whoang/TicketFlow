@@ -1,0 +1,50 @@
+name: ticketflow
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ticketflow}
+      MYSQL_USER: ${MYSQL_USER:-ticketflow}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-ticketflow}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-ticketflow-root-change-me}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - ticketflow_mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mysqladmin ping -h 127.0.0.1 -uroot -p"$${MYSQL_ROOT_PASSWORD}" --silent
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "no"
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  ticketflow_mysql_data:
+    name: ticketflow_mysql_data
