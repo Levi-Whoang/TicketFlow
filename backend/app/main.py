@@ -11,6 +11,7 @@ from app.config import Settings, load_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import register_middleware
+from app.infrastructure.database import AsyncDatabase
 
 APP_NAME = "TicketFlow"
 
@@ -24,7 +25,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         runtime_settings = settings or load_settings()
         application.state.settings = runtime_settings
         configure_logging(runtime_settings.log_level)
-        yield
+        database = AsyncDatabase.create(
+            runtime_settings.database_url.get_secret_value(),
+        )
+        application.state.async_database = database
+        application.state.async_session_factory = database.session_factory
+        try:
+            yield
+        finally:
+            await database.dispose()
 
     application = FastAPI(
         title=APP_NAME,
