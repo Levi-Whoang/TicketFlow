@@ -8,10 +8,12 @@ import pytest
 from fastapi import Depends, Request
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.api.deps.database import get_async_session
 from app.config import PROJECT_ROOT, load_settings
 from app.infrastructure.database import AsyncDatabase
+from app.infrastructure.sync_database import SyncDatabase
 from app.main import create_app
 
 
@@ -116,6 +118,51 @@ async def test_async_database_creates_session_and_disposes() -> None:
         assert session.bind is database.engine
 
     await database.dispose()
+
+
+async def test_sync_and_async_database_are_independent() -> None:
+    """异步与同步数据库设施不共享 Engine 或 Session。"""
+    settings = load_settings(PROJECT_ROOT / ".env.example")
+    async_database = AsyncDatabase.create(
+        settings.database_url.get_secret_value(),
+    )
+    sync_database = SyncDatabase.create(
+        settings.sync_database_url.get_secret_value(),
+    )
+
+    try:
+        assert id(async_database.engine) != id(sync_database.engine)
+        assert async_database.engine.url.drivername == "mysql+asyncmy"
+        assert sync_database.engine.url.drivername == "mysql+pymysql"
+
+        async with async_database.session_factory() as async_session:
+            assert isinstance(async_session, AsyncSession)
+
+        with sync_database.session_factory() as sync_session:
+            assert isinstance(sync_session, Session)
+            assert sync_session.bind is sync_database.engine
+    finally:
+        await async_database.dispose()
+        sync_database.dispose()
+
+
+@pytest.mark.skipif(
+    os.getenv("RUN_MYSQL_INTEGRATION") != "1",
+    reason="需要真实 MySQL",
+)
+def test_real_sync_mysql_session() -> None:
+    """同步 Session 可连接真实 MySQL。"""
+    settings = load_settings(PROJECT_ROOT / ".env.example")
+    database = SyncDatabase.create(
+        settings.sync_database_url.get_secret_value(),
+    )
+
+    try:
+        with database.session_factory() as session:
+            result = session.execute(text("SELECT 1"))
+            assert result.scalar_one() == 1
+    finally:
+        database.dispose()
 
 
 @pytest.mark.skipif(
