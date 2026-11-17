@@ -181,6 +181,12 @@
 
 每个列表查询必须追加 `id` 作为第二排序字段，避免相同时间值导致分页结果抖动或重复。
 
+按优先级排序时使用业务等级 `urgent > high > medium > low`：
+
+- `sort_order=desc` 表示紧急优先。
+- `sort_order=asc` 表示低优先级优先。
+- 默认工作列表推荐按更新时间倒序，不默认按优先级倒序。
+
 ## 8. 时间与时长
 
 ### 8.1 时间格式
@@ -259,7 +265,7 @@ WWW-Authenticate: Bearer
 管理员建号或重置密码后：
 
 - 登录成功返回 `must_change_password=true`。
-- 令牌 `scope=password_change`，只能访问 `/api/v1/auth/me` 和 `/api/v1/auth/change-password`。
+- 令牌 `scope=password_change`，只能访问 `/api/v1/auth/change-password`。
 - 访问业务接口返回 403 `AUTHORIZATION_DENIED`。
 - 改密成功后提升 `token_version`，旧令牌立即失效；用户重新登录获得 `scope=api` 令牌。
 
@@ -387,3 +393,9 @@ Swagger 至少支持：
 10. 命令式状态动作使用 `POST /资源/{id}/动作`。
 11. 业务错误继续使用现有统一错误结构。
 12. 不实现 Refresh Token，第一版短期令牌过期后重新登录。
+
+## 16. 实现注意事项
+
+- FastAPI 中 `/api/v1/tickets/pool` 必须先于 `/api/v1/tickets/{ticket_id}` 注册，避免 `pool` 被动态 ID 路由吞掉。
+- 优先级排序不能直接依赖字符串字典序，应使用明确业务等级映射或数据库排序值。
+- 首次改密 scope 只允许改密接口，不能通过 `/auth/me` 或其它接口绕过改密限制。
