@@ -14,7 +14,9 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 settings = load_settings()
-database_url = settings.sync_database_url.get_secret_value()
+database_url = (
+    config.get_main_option("sqlalchemy.url") or settings.sync_database_url.get_secret_value()
+)
 config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 target_metadata = models.Base.metadata
 

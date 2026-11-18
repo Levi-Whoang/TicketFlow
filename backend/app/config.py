@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     database_url: SecretStr
     sync_database_url: SecretStr
     test_database_url: SecretStr
+    test_sync_database_url: SecretStr
 
     redis_url: SecretStr
     celery_broker_url: SecretStr
@@ -101,6 +102,7 @@ def validate_runtime_settings(settings: Settings) -> Settings:
         ("database_url", ("mysql+asyncmy",), True),
         ("sync_database_url", ("mysql+pymysql",), True),
         ("test_database_url", ("mysql+asyncmy",), True),
+        ("test_sync_database_url", ("mysql+pymysql",), True),
         ("redis_url", ("redis", "rediss"), False),
         ("celery_broker_url", ("redis", "rediss"), False),
         ("celery_result_backend", ("redis", "rediss"), False),
@@ -143,6 +145,12 @@ def validate_runtime_settings(settings: Settings) -> Settings:
     test_db = urlparse(settings.test_database_url.get_secret_value()).path.strip("/")
     if development_db and development_db == test_db:
         errors.append("test_database_url: 测试数据库不能与开发数据库相同")
+
+    test_sync_db = urlparse(
+        settings.test_sync_database_url.get_secret_value(),
+    ).path.strip("/")
+    if test_db and test_sync_db and test_db != test_sync_db:
+        errors.append("test_sync_database_url: 必须与异步测试数据库相同")
 
     if errors:
         raise SettingsError(errors)

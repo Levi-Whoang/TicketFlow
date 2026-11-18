@@ -18,6 +18,9 @@ def test_env_example_loads() -> None:
     assert settings.app_name == "TicketFlow"
     assert settings.database_url.get_secret_value().startswith("mysql+asyncmy://")
     assert settings.sync_database_url.get_secret_value().startswith("mysql+pymysql://")
+    assert settings.test_sync_database_url.get_secret_value().startswith(
+        "mysql+pymysql://",
+    )
     assert settings.redis_url.get_secret_value().startswith("redis://")
     assert settings.cors_origins == [
         "http://localhost:5173",
@@ -67,6 +70,17 @@ def test_test_database_must_differ() -> None:
         validate_runtime_settings(settings)
 
     assert "测试数据库不能与开发数据库相同" in str(exc_info.value)
+
+
+def test_sync_test_database_must_match() -> None:
+    """同步测试库必须与异步测试库一致。"""
+    settings = load_settings(PROJECT_ROOT / ".env.example")
+    settings.test_sync_database_url = settings.sync_database_url
+
+    with pytest.raises(SettingsError) as exc_info:
+        validate_runtime_settings(settings)
+
+    assert "必须与异步测试数据库相同" in str(exc_info.value)
 
 
 async def test_app_lifespan_loads_settings() -> None:

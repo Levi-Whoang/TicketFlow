@@ -1,4 +1,3 @@
-import os
 from collections.abc import AsyncGenerator
 from types import SimpleNamespace
 from typing import Annotated, Self, cast
@@ -11,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from app.api.deps.database import get_async_session
-from app.config import PROJECT_ROOT, load_settings
+from app.config import PROJECT_ROOT, Settings, load_settings
 from app.infrastructure.database import AsyncDatabase
 from app.infrastructure.sync_database import SyncDatabase
 from app.main import create_app
@@ -146,33 +145,18 @@ async def test_sync_and_async_database_are_independent() -> None:
         sync_database.dispose()
 
 
-@pytest.mark.skipif(
-    os.getenv("RUN_MYSQL_INTEGRATION") != "1",
-    reason="需要真实 MySQL",
-)
-def test_real_sync_mysql_session() -> None:
+def test_real_sync_mysql_session(sync_mysql_session: Session) -> None:
     """同步 Session 可连接真实 MySQL。"""
-    settings = load_settings(PROJECT_ROOT / ".env.example")
-    database = SyncDatabase.create(
-        settings.sync_database_url.get_secret_value(),
-    )
-
-    try:
-        with database.session_factory() as session:
-            result = session.execute(text("SELECT 1"))
-            assert result.scalar_one() == 1
-    finally:
-        database.dispose()
+    result = sync_mysql_session.execute(text("SELECT 1"))
+    assert result.scalar_one() == 1
 
 
-@pytest.mark.skipif(
-    os.getenv("RUN_MYSQL_INTEGRATION") != "1",
-    reason="需要真实 MySQL",
-)
-async def test_real_mysql_session_dependency() -> None:
+async def test_real_mysql_session_dependency(
+    mysql_test_settings: Settings,
+    async_mysql_session: AsyncSession,
+) -> None:
     """真实请求可通过依赖执行 MySQL 查询。"""
-    settings = load_settings(PROJECT_ROOT / ".env.example")
-    application = create_app(settings)
+    application = create_app(mysql_test_settings)
 
     async def probe(
         session: Annotated[AsyncSession, Depends(get_async_session)],
